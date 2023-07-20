@@ -1,0 +1,65 @@
+// If you need windows to sleep when lid is closed but you have some group policies disable it globally, here is a guide to make it with powershell script. You can add it to scheduled tasks to start with logon.
+
+
+// Run this command once and then shut lid/turn off monitor and run command again to determine which device is the primary monitor/lid
+
+Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBasicDisplayParams
+
+
+// Then, this IF statement can detect when one of the monitors turn off/on (Just change the InstanceName):
+
+if(Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBasicDisplayParams | Where {$_.InstanceName -eq "DISPLAY\LGD04B9\4&1037c30a&0&UID265988_0"}){
+write-host "Display ON"
+}else{
+Write-Host "Display OFF"
+}
+
+//You can throw this into a Timer that checks the status every 1 second (or longer):
+
+$timer = New-Object timers.timer
+$timer.Interval = 1000
+$action = {
+    if(Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBasicDisplayParams | Where {$_.InstanceName -eq "DISPLAY\BOE091D\4&76198a3&0&UID8388688_0"}){
+        write-host "Display ON"
+    }else{
+        Write-Host "Display OFF"
+	rundll32.exe powrprof.dll, SetSuspendState Sleep
+
+    }
+}
+Register-ObjectEvent -InputObject $timer -EventName elapsed `
+-SourceIdentifier SleepTimer -Action $action
+$timer.Enabled = $True
+$timer.start()
+
+
+
+// Final code (you need to change instancename)
+
+$timer = New-Object timers.timer
+
+$timer.Interval = 1000
+
+$action = {
+
+if(Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBasicDisplayParams | Where {$_.InstanceName -eq "DISPLAY\BOE091D\4&76198a3&0&UID8388688_0"}){
+
+write-host "Display ON"
+
+}else{
+
+Write-Host "Display OFF"
+
+rundll32.exe powrprof.dll, SetSuspendState Sleep
+
+}
+
+}
+
+Register-ObjectEvent -InputObject $timer -EventName elapsed `
+
+–SourceIdentifier SleepTimer -Action $action
+
+$timer.Enabled = $True
+
+$timer.start()
